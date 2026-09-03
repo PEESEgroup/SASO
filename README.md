@@ -1,5 +1,6 @@
 # AI for Salt-Solvent Formulation Generation
 This software package implements the SASO that generates salt-solvent formulations with high ionic conductivity.
+<img width="878" height="463" alt="image" src="https://github.com/user-attachments/assets/2ce9c089-87f5-4a7d-bd41-7da279158f61" />
 
 The package provides three major functions:
 * Generate formulations (Li-salts, solvents, and conditions) with target ionic conductivity.
