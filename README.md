@@ -75,4 +75,4 @@ This software was primarily written by `Dr. Zhilong Wang` who is advised by `Pro
 ## How to cite
 Please cite the following work if you want to use SASO:
 
-    Zhilong Wang, Fengqi You*. (2025).
+    Zhilong Wang, Wentao Hou, Xianyong Wu*, Fengqi You*. Submitted, (2026)
