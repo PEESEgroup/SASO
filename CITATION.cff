@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use SASO in your research, please cite the accompanying manuscript."
+title: "SASO: Data-aware generative design of non-aqueous electrolytes"
+type: software
+authors:
+  - family-names: Wang
+    given-names: Zhilong
+  - family-names: Hou
+    given-names: Wentao
+  - family-names: Wu
+    given-names: Xianyong
+  - family-names: You
+    given-names: Fengqi
+repository-code: "https://github.com/PEESEgroup/SASO"
+date-released: 2026-09-03
