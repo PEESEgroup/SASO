@@ -193,16 +193,15 @@ Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before proposing changes. For s
 If SASO supports your research, please cite:
 
 ```text
-Zhilong Wang, Wentao Hou, Xianyong Wu, and Fengqi You.
-Data-aware generative design of non-aqueous electrolytes. Manuscript submitted (2026).
+Zhilong Wang, Wentao Hou, Xianyong Wu, and Fengqi You. Manuscript submitted (2026).
 ```
 
 The citation will be updated when the article record becomes available.
 
 ## Authors
 
-The software was primarily developed by **Zhilong Wang**, advised by **Fengqi You**, with research contributions described in the accompanying manuscript.
+The software was primarily developed by **Dr. Zhilong Wang**, advised by **Prof. Fengqi You**, with research contributions described in the accompanying manuscript.
 
-## Licence
+## License
 
-No open-source licence file is currently included. Unless and until a licence is added by the copyright holders, the repository contents remain subject to the default protections of copyright law.
+This software is under the MIT License.
