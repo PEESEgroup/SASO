@@ -1,13 +1,15 @@
-7.643	-4.264	LiPF6
-12.47	-3.133	LiBF4
-4.486	-3.738	LiFSI
-2.664	-2.646	LiTDI
-4.694	-3.671	LiPDI
-1.426	-0.406	LiTFSI
-5.008	-4.604	LiClO4
-1.485	-2.255	LiAsF6
-2.004	-3.701	LiBOB
-4.729	-4.083	LiCF3SO3
-7.318	-1.984	LiBPFPB
-2.557	-2.771	LiBMB
-4.773	-3.684	LiN(CF3SO2)2
+salt_features_dict = {
+    'LiPF6': np.array([7.643, -4.264]),
+    'LiBF4': np.array([12.470, -3.133]),
+    'LiFSI': np.array([4.486, -3.738]),
+    'LiTDI': np.array([2.664, -2.646]),
+    'LiTFSI': np.array([4.694, -3.671]),
+    'LiClO4': np.array([1.426, -0.406]),
+    'LiAsF6': np.array([5.008, -4.604]),
+    'LiBMB': np.array([1.485, -2.255]),
+    'LiBOB': np.array([2.004, -3.701]),
+    'LiBPFPB': np.array([4.729, -4.083]),
+    'LiCF3SO3': np.array([7.318, -1.984]),
+    'LiPDI': np.array([2.557, -2.771]),
+    'LiN(CF3SO2)2': np.array([4.773, -3.684]),
+}
