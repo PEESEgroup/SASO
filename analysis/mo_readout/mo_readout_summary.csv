@@ -1,0 +1,48 @@
+section,metric,value,population
+Dataset,All formulations,13302.0,All rows
+Dataset,1-component formulations,2244.0,16.869644% of all rows
+Dataset,2-component formulations,9736.0,73.192001% of all rows
+Dataset,3-component formulations,634.0,4.766201% of all rows
+Dataset,4-component formulations,688.0,5.172155% of all rows
+Dataset,Rows covered by unary/binary readout analysis,11980.0,90.061645% of all rows
+Salt,Top-1 identity recovery rate,1.0,All formulations
+Salt,Mean nearest descriptor distance,9.32022711868986e-09,All formulations
+Unary,Number of samples,2244.0,Unary
+Unary,Fraction exactly on 0.05 grid,1.0,Unary
+Unary,Solvent identity recovery rate,1.0,Unary
+Unary,Strict identity + raw ratio recovery rate,1.0,Unary
+Unary,Identity + normalized ratio recovery rate (tol 0.025),1.0,Unary
+Unary,Identity + normalized ratio recovery rate (tol 0.05),1.0,Unary
+Unary,Mean descriptor distance,8.425398093918853e-08,Unary
+Unary,Median descriptor distance,1.1920928955078125e-07,Unary
+Unary,95th percentile descriptor distance,1.1920928955078125e-07,Unary
+Unary,Mean normalized ratio max-absolute error,0.0,Unary
+Unary,Median nearest-neighbor margin,0.006648376861771779,Unary
+Unary,Fraction with effectively tied top two candidates,0.0,Unary
+Binary,Number of samples,9736.0,Binary
+Binary,Fraction exactly on 0.05 grid,0.9941454396055875,Binary
+Binary,Solvent identity recovery rate,0.9942481511914544,Binary
+Binary,Strict identity + raw ratio recovery rate,0.9941454396055875,Binary
+Binary,Identity + normalized ratio recovery rate (tol 0.025),0.9942481511914544,Binary
+Binary,Identity + normalized ratio recovery rate (tol 0.05),0.9942481511914544,Binary
+Binary,Mean descriptor distance,6.975977350048019e-05,Binary
+Binary,Median descriptor distance,0.0,Binary
+Binary,95th percentile descriptor distance,1.1920928955078125e-07,Binary
+Binary,Mean normalized ratio max-absolute error,0.003730484798685319,Binary
+Binary,Median nearest-neighbor margin,0.0035735136787336795,Binary
+Binary,Fraction with effectively tied top two candidates,0.0,Binary
+Unary + binary,Number of samples,11980.0,Unary + binary
+Unary + binary,Fraction exactly on 0.05 grid,0.9952420701168614,Unary + binary
+Unary + binary,Solvent identity recovery rate,0.9953255425709516,Unary + binary
+Unary + binary,Strict identity + raw ratio recovery rate,0.9952420701168614,Unary + binary
+Unary + binary,Identity + normalized ratio recovery rate (tol 0.025),0.9953255425709516,Unary + binary
+Unary + binary,Identity + normalized ratio recovery rate (tol 0.05),0.9953255425709516,Unary + binary
+Unary + binary,Mean descriptor distance,5.670869956042593e-05,Unary + binary
+Unary + binary,Median descriptor distance,0.0,Unary + binary
+Unary + binary,95th percentile descriptor distance,1.1920928955078125e-07,Unary + binary
+Unary + binary,Mean normalized ratio max-absolute error,0.003031719532554279,Unary + binary
+Unary + binary,Median nearest-neighbor margin,0.004308131845810777,Unary + binary
+Unary + binary,Fraction with effectively tied top two candidates,0.0,Unary + binary
+Comparator,Explicit solvent composition dimension,38.0,One coordinate per solvent
+Comparator,Explicit representation exact recovery,1.0,By construction within the fixed library
+Comparator,Weighted HOMO-LUMO dimension,2.0,Continuous compact descriptor

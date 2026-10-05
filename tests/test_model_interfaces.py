@@ -4,7 +4,7 @@ from pathlib import Path
 
 try:
     import torch
-except ImportError:  # pragma: no cover
+except ImportError:
     torch = None
 
 

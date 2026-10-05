@@ -6,7 +6,7 @@ This guide maps the released files to the SASO workflow and records the assumpti
 
 ### Formulation representation
 
-`descriptor_utils.py` converts electrolyte records into four feature groups: the target ionic conductivity, continuous temperature and concentration features, categorical formulation features, and salt/solvent molecular descriptors. Its decoder reverses the numerical scaling. Molecular identities are recovered separately by `search_salt_solvent.py`.
+`descriptor_utils.py` separates the conductivity condition from the generated formulation. `ElectrolyteDataset.get_features_and_targets()` returns `(formulations, Y)`, where `Y[:, 0]` is the ionic conductivity `k` in `data/training_data.csv`. The formulation tensor contains temperature, concentration, categorical features, and salt/solvent molecular descriptors. Its decoder reverses the numerical scaling. Molecular identities are recovered separately by `search_salt_solvent.py`.
 
 ### Generative models
 
@@ -15,7 +15,7 @@ This guide maps the released files to the SASO workflow and records the assumpti
 - `model/CVAE`: conditional variational autoencoder.
 - `model/R-CVAE`: conditional variational autoencoder with routed decoders.
 
-The released model definitions and training hyperparameters are retained unchanged. Maintenance changes should not modify them without a scientific reproducibility assessment.
+Every training script exposes the loss variant, random seed, training budget, and principal architecture dimensions as command-line arguments. Standard and routed variants use the same shared loss utilities, so weighting is applied consistently to per-sample reconstruction losses before batch reduction. Routed branches have neutral names because specialization must be established from learned routing behaviour rather than inferred from labels.
 
 ### Molecular readout
 
@@ -51,14 +51,9 @@ These are research calculations rather than a validated general-purpose simulati
 
 ## Reproducibility boundary
 
-The release supports inspection of all model definitions, molecular matching, data audits, and access to pretrained weights. Several execution scripts retain working-environment conventions that are not fully represented in a clean checkout:
+The release supports inspection of model definitions, molecular matching, data audits, configurable training, generation, and access to pretrained weights. Training and generation use the canonical descriptor loader and `data/training_data.csv`; paths are resolved relative to the repository root. New checkpoints are accompanied by JSON provenance recording the architecture, objective, condition semantics, budget, seed, hyperparameters, and parameter count.
 
-- training and generation scripts import `smiles.py`, whereas released descriptors are stored in text files and SCAN features are in `prediction/feature.py`;
-- scripts refer to `compressed_new.csv`, while the released table is `data/training_data.csv`;
-- generation and prediction scripts contain example checkpoint and input filenames;
-- local imports require scripts to be run from their own directories unless deliberately adapted.
-
-These differences are documented rather than automatically rewritten because an unverified compatibility layer could alter feature ordering, scaling, or checkpoint interpretation. A future reproducibility release should provide a canonical descriptor loader, configuration-driven paths, recorded random seeds and splits, and an end-to-end inference example checked against a reference output.
+The standard and routed architectures do not have identical parameter counts. The six objective-routing ablations therefore isolate the effect of weighting within a fixed architecture and reveal its interaction with routing, but they should not be interpreted as a strict parameter-matched proof that every cross-architecture difference is caused solely by routing. Reproducing the released checkpoints also requires the software versions listed in `requirements.txt` and compatible hardware-dependent numerical libraries.
 
 ## Safe validation
 

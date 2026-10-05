@@ -1,54 +1,58 @@
-# model.py
-
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
+
 
 def make_beta_schedule(timesteps, beta_start=1e-4, beta_end=0.02):
     return np.linspace(beta_start, beta_end, timesteps, dtype=np.float32)
+
 
 class DiffusionNoiseScheduler:
     def __init__(self, timesteps=1000):
         self.timesteps = timesteps
         self.betas = make_beta_schedule(timesteps)
-        self.alphas = 1. - self.betas
+        self.alphas = 1.0 - self.betas
         self.alpha_bars = np.cumprod(self.alphas)
 
-    def add_noise(self, y, noise, t):
-        alpha_bar = torch.tensor(self.alpha_bars[t.cpu()], dtype=torch.float32).to(y.device).unsqueeze(1)
-        return (alpha_bar.sqrt() * y + (1 - alpha_bar).sqrt() * noise)
+    def add_noise(self, formulation, noise, timestep):
+        alpha_bar = torch.as_tensor(
+            self.alpha_bars[timestep.detach().cpu().numpy()],
+            dtype=formulation.dtype,
+            device=formulation.device,
+        ).unsqueeze(1)
+        return alpha_bar.sqrt() * formulation + (1.0 - alpha_bar).sqrt() * noise
 
-# ✅ 动态路由 MLP
+
 class MLPDiffusionModelWithRouting(nn.Module):
-    def __init__(self, input_dim, cond_dim):
+    def __init__(self, input_dim, cond_dim, hidden_dim=128):
         super().__init__()
         self.shared = nn.Sequential(
-            nn.Linear(input_dim + cond_dim + 1, 128),
-            nn.ReLU()
+            nn.Linear(input_dim + cond_dim + 1, hidden_dim), nn.ReLU()
         )
-        self.route_main = nn.Sequential(
-            nn.Linear(128, 128),
+        self.route_a = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(128, input_dim)
+            nn.Linear(hidden_dim, input_dim),
         )
-        self.route_tail = nn.Sequential(
-            nn.Linear(128, 128),
+        self.route_b = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(128, input_dim)
+            nn.Linear(hidden_dim, input_dim),
         )
-        self.gate = nn.Sequential(
-            nn.Linear(cond_dim + 1, 1),  # cond + timestep
-            nn.Sigmoid()  # 输出 [0,1]，越接近1越偏向 tail 路径
+        self.gate = nn.Sequential(nn.Linear(cond_dim + 1, 1), nn.Sigmoid())
+
+    def forward(self, noisy_formulation, conductivity, timestep_embedding):
+        inputs = torch.cat(
+            [noisy_formulation, conductivity, timestep_embedding], dim=1
         )
+        hidden = self.shared(inputs)
+        gate_inputs = torch.cat([conductivity, timestep_embedding], dim=1)
+        gate_weight = self.gate(gate_inputs)
+        return gate_weight * self.route_b(hidden) + (1.0 - gate_weight) * self.route_a(hidden)
 
-    def forward(self, y_noisy, cond, t_embed):
-        x = torch.cat([y_noisy, cond, t_embed], dim=1)
-        h = self.shared(x)
-
-        gate_input = torch.cat([cond, t_embed], dim=1)
-        g = self.gate(gate_input)  # [B, 1]
-
-        out_main = self.route_main(h)
-        out_tail = self.route_tail(h)
-        return g * out_tail + (1 - g) * out_main
-
+    def load_state_dict(self, state_dict, strict=True, assign=False):
+        mapped = {}
+        for key, value in state_dict.items():
+            key = key.replace("route_main", "route_a").replace("route_tail", "route_b")
+            mapped[key] = value
+        return super().load_state_dict(mapped, strict=strict, assign=assign)

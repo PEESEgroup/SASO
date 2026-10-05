@@ -1,82 +1,93 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
+import argparse
+import sys
+from pathlib import Path
+
 import pandas as pd
-from descriptor_utils import ElectrolyteDataset
-from model_r import CVAEWithRouting as CVAE
-import numpy as np
-from smiles import salt_features_dict, solvent_features_dict
-from torch.utils.data import Dataset, DataLoader
+import torch
+import torch.optim as optim
 
-# --------- ✅ 样本权重计算函数 ---------
-def compute_sample_weights(y, num_bins=5):
-    y = y.detach().cpu().numpy().flatten()
-    hist, bin_edges = np.histogram(y, bins=num_bins)
-    bin_indices = np.digitize(y, bin_edges[:-1], right=True)
-    freq = np.bincount(bin_indices, minlength=num_bins+1)[1:]
-    freq = freq / np.sum(freq)
-    raw_weights = 1.0 / (freq[bin_indices - 1] + 1e-6)
-    alpha = 0.3
-    weights = alpha * raw_weights + (1 - alpha) * 1.0
-    weights = weights / np.mean(weights)  # normalize
-    return torch.tensor(weights, dtype=torch.float32)
 
-# --------- ✅ 修改 Dataset 类，支持权重 ---------
-class WeightedElectrolyteDataset(Dataset):
-    def __init__(self, df, solvent_feature_dict, salt_feature_dict):
-        self.dataset = ElectrolyteDataset(df, solvent_feature_dict, salt_feature_dict)
-        self.X, self.Y = self.dataset.get_features_and_targets()
-        self.weights = compute_sample_weights(self.Y[:, 0])  # 假设Y[:, 0]是目标电导率
-        self.X = torch.tensor(self.X, dtype=torch.float32)
-        self.Y = torch.tensor(self.Y, dtype=torch.float32)
-        self.weights = torch.tensor(self.weights, dtype=torch.float32)
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "model"))
 
-    def __len__(self):
-        return len(self.X)
+from descriptor_utils import ElectrolyteDataset, load_descriptor_libraries
+from model_r import CVAEWithRouting
+from training_utils import cvae_loss, save_checkpoint, set_seed
 
-    def __getitem__(self, idx):
-        return self.X[idx], self.Y[idx], self.weights[idx]
 
-# --------- ✅ 加载数据 ---------
-df = pd.read_csv("compressed_new.csv")
-solvent_feature_dict = solvent_features_dict
-salt_feature_dict = salt_features_dict
-dataset = ElectrolyteDataset(df, solvent_feature_dict, salt_feature_dict)
-X_raw, Y_raw = dataset.get_features_and_targets()
-X, Y = torch.tensor(X_raw).float(), torch.tensor(Y_raw).float()
-#dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", type=Path, default=ROOT / "data" / "training_data.csv")
+    parser.add_argument("--loss", choices=("unweighted", "weighted"), default="unweighted")
+    parser.add_argument("--epochs", type=int, default=1000)
+    parser.add_argument("--latent-dim", type=int, default=16)
+    parser.add_argument("--hidden-dim", type=int, default=64)
+    parser.add_argument("--experts", type=int, default=5)
+    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--weight-bins", type=int, default=5)
+    parser.add_argument("--weight-alpha", type=float, default=0.3)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--output", type=Path)
+    return parser.parse_args()
 
-# --------- ✅ 初始化模型 ---------
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = CVAE(cond_dim=X.shape[1], out_dim=Y.shape[1]).to(device)
-opt = optim.Adam(model.parameters(), lr=1e-3)
 
-# --------- ✅ 自定义 loss 函数，支持 weights ---------
-def loss_fn(recon_x, x, mu, logvar, weights):
-    recon_loss = F.mse_loss(recon_x, x, reduction='none').sum(dim=1)  # [batch_size]
-    kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)  # [batch_size]
-    loss = recon_loss * weights + kl_loss * weights
-    return loss.mean()
+def main():
+    args = parse_args()
+    set_seed(args.seed)
+    salt_descriptors, solvent_descriptors = load_descriptor_libraries(ROOT / "data")
+    data = pd.read_csv(args.data, na_values=["null"])
+    dataset = ElectrolyteDataset(data, solvent_descriptors, salt_descriptors)
+    formulations_raw, Y_raw = dataset.get_features_and_targets()
+    formulations = torch.as_tensor(formulations_raw, dtype=torch.float32, device=args.device)
+    Y = torch.as_tensor(Y_raw, dtype=torch.float32, device=args.device)
+    model = CVAEWithRouting(
+        cond_dim=Y.shape[1],
+        out_dim=formulations.shape[1],
+        latent_dim=args.latent_dim,
+        hidden_dim=args.hidden_dim,
+        n_experts=args.experts,
+    ).to(args.device)
+    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+    weighted = args.loss == "weighted"
+    for epoch in range(args.epochs):
+        reconstruction, mean, log_variance = model(formulations, Y)
+        loss = cvae_loss(
+            reconstruction,
+            formulations,
+            mean,
+            log_variance,
+            Y,
+            weighted,
+            args.weight_bins,
+            args.weight_alpha,
+        )
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        if epoch < 10 or epoch % 10 == 0:
+            print(f"[{epoch}] Loss: {loss.item():.6f}")
+    output = args.output or ROOT / "checkpoints" / f"R-CVAE_{args.loss}.pt"
+    save_checkpoint(
+        model,
+        output,
+        {
+            "architecture": "R-CVAE",
+            "loss": args.loss,
+            "condition": "Y[:,0] = ionic conductivity k",
+            "data": str(args.data),
+            "epochs": args.epochs,
+            "latent_dim": args.latent_dim,
+            "hidden_dim": args.hidden_dim,
+            "experts": args.experts,
+            "learning_rate": args.learning_rate,
+            "weight_bins": args.weight_bins,
+            "weight_alpha": args.weight_alpha if weighted else None,
+            "seed": args.seed,
+        },
+    )
 
-# --------- ✅ 训练循环 ---------
-for epoch in range(1000):
-    model.train()
-    total_loss = 0.0
-    X, Y = X.to(device), Y.to(device)
-    recon, mu, logvar = model(Y, X)
-    weights = compute_sample_weights(Y[:, 0])  # 以目标值的第一个维度为主
-    weights = weights.to(device)
-    #loss = loss_fn(recon, Y, mu, logvar, weights)
-    mse = nn.MSELoss()(recon, Y)
-    kl = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
-    loss = mse + kl
-    loss = (loss * weights).mean()
-    opt.zero_grad()
-    loss.backward()
-    opt.step()
-    print(f"[{epoch}] Loss: {loss:.4f}")
 
-# --------- ✅ 保存模型 ---------
-torch.save(model.state_dict(), "cvae.pt")
-
+if __name__ == "__main__":
+    main()

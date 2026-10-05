@@ -62,7 +62,8 @@ SASO/
 │   ├── MLPD/                   # Baseline diffusion model and training script
 │   ├── R-MLPD/                 # Routing-enabled diffusion model
 │   ├── CVAE/                   # Baseline conditional VAE
-│   └── R-CVAE/                 # Routing-enabled conditional VAE
+│   ├── R-CVAE/                 # Routing-enabled conditional VAE
+│   └── training_utils.py       # Shared loss weighting and checkpoint metadata
 ├── prediction/                 # SCAN model, features, and prediction workflow
 ├── scripts/                    # Molecular-simulation helper calculations
 ├── tests/                      # Unit and repository-integrity tests
@@ -129,14 +130,20 @@ Model-interface tests are skipped automatically when PyTorch is unavailable. The
 
 ### Train a model
 
-Each training script is colocated with its architecture. Run from that model directory because the original scripts use working-directory-relative paths:
+Each training script is colocated with its architecture and can be launched from the repository root. The condition tensor is named `Y`, and `Y[:, 0]` is ionic conductivity `k`. The generated formulation tensor contains temperature, concentration, categorical variables, and molecular-orbital descriptors.
 
 ```bash
-cd model/R-MLPD
-python train.py
+python model/MLPD/train.py --loss weighted
+python model/R-MLPD/train.py --loss unweighted
+python model/R-MLPD/train.py --loss weighted
+python model/CVAE/train.py --loss weighted
+python model/R-CVAE/train.py --loss unweighted
+python model/R-CVAE/train.py --loss weighted
 ```
 
-The scripts preserve the hyperparameters used in the research workflow. Before retraining, see the reproducibility note below about descriptor-module and training-table filenames expected by the original scripts.
+Weighted runs compute inverse-frequency weights from `Y[:, 0]` and apply them to unreduced per-sample reconstruction losses. Unweighted runs use the same architecture and optimization settings without sample weights. The default training budget is 1,000 epochs; diffusion models use 500 timesteps. Use the same seed and command-line settings for controlled ablations.
+
+Each new checkpoint is accompanied by a JSON record containing the architecture, loss variant, condition definition, data path, training budget, hyperparameters, random seed, and parameter count. The scripts do not overwrite the released checkpoints unless an existing path is supplied explicitly.
 
 ### Predict conductivity with SCAN
 
@@ -180,9 +187,9 @@ These scripts contain the calculation examples used in the study. Check all unit
 
 ## Reproducibility status
 
-The repository contains the manuscript datasets, model definitions, and pretrained weights. The original training and generation scripts also refer to historical local filenames such as `compressed_new.csv`, `smiles.py`, and model-specific checkpoint names. These names are retained to avoid silently changing the published research pipeline. A clean checkout therefore supports code inspection, repository validation, molecular readout tests, and access to the released artifacts, but some end-to-end commands require the authors to reconcile those historical inputs with the released `data/` files.
+The repository contains the manuscript datasets, model definitions, pretrained weights, canonical descriptor loaders, and explicit weighted/unweighted training modes. The released pretrained checkpoints remain unchanged. New training runs write to `checkpoints/` by default and record their provenance in adjacent JSON files.
 
-This boundary is recorded explicitly in [`docs/REPOSITORY_GUIDE.md`](docs/REPOSITORY_GUIDE.md#reproducibility-boundary). Contributions that make the workflow portable are welcome provided they preserve the reported model architectures and parameters.
+The routed and non-routed architectures do not have equal parameter counts. Consequently, routing-versus-baseline comparisons should report both training-budget controls and model capacity, and should not attribute every difference exclusively to the gating operation. The weighted/unweighted switches isolate the effect of loss reweighting within a fixed architecture.
 
 ## Contributing
 

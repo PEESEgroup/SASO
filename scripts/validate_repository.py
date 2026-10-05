@@ -1,10 +1,10 @@
-"""Run lightweight, non-mutating integrity checks for a SASO checkout."""
-
 from __future__ import annotations
 
 import ast
 import csv
+import os
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,8 +33,20 @@ def read_header(path: Path) -> set[str]:
 
 
 def count_descriptor_rows(path: Path) -> int:
-    with path.open(encoding="utf-8") as handle:
-        return sum(1 for line in handle if line.strip())
+    source = path.read_text(encoding="utf-8")
+    dictionary_count = len(re.findall(r"np\.array\(", source))
+    if dictionary_count:
+        return dictionary_count
+    return sum(1 for line in source.splitlines() if line.strip())
+
+
+def python_sources():
+    excluded = {".git", ".venv", "venv", "__pycache__", "node_modules"}
+    for directory, subdirectories, filenames in os.walk(ROOT, topdown=True):
+        subdirectories[:] = [name for name in subdirectories if name not in excluded]
+        for filename in filenames:
+            if filename.endswith(".py"):
+                yield Path(directory) / filename
 
 
 def main() -> int:
@@ -60,7 +72,7 @@ def main() -> int:
     if len(scan_folds) != 5:
         errors.append(f"expected 5 SCAN checkpoints, found {len(scan_folds)}")
 
-    for path in ROOT.rglob("*.py"):
+    for path in python_sources():
         try:
             ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         except (SyntaxError, UnicodeDecodeError) as exc:

@@ -1,0 +1,22 @@
+{
+  "data_file": "data\\training_data.csv",
+  "salt_descriptor_file": "data\\salt_MO.txt",
+  "solvent_descriptor_file": "data\\solvent_MO.txt",
+  "grid_step": 0.05,
+  "candidate_count": 13395,
+  "pure_candidate_count": 38,
+  "binary_candidate_count": 13357,
+  "evaluated_sample_count": 11980,
+  "random_seed": 20261001,
+  "sensitivity_replicates": 20,
+  "solvent_aliases": {
+    "3-Me-2-O": "3-Me-2-Oxazolidinone",
+    "3-MeSul": "3-MeSulfolane",
+    "Ethylb": "Ethylbenzene",
+    "Ethyld": "Ethyldiglyme",
+    "Ethylm": "Ethylmonoglyme",
+    "Freon": "Freon 11",
+    "MC": "Methylene chloride",
+    "g-Buty": "g-Butyrolactone"
+  }
+}

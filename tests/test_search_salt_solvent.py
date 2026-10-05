@@ -2,7 +2,7 @@ import unittest
 
 try:
     import numpy as np
-except ImportError:  # pragma: no cover
+except ImportError:
     np = None
 
 if np is not None:

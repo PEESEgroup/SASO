@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class CVAE(nn.Module):
     def __init__(self, cond_dim, out_dim, latent_dim=16, hidden_dim=64):
         super().__init__()
@@ -11,19 +12,19 @@ class CVAE(nn.Module):
         self.fc3 = nn.Linear(latent_dim + cond_dim, hidden_dim)
         self.fc4 = nn.Linear(hidden_dim, out_dim)
 
-    def encode(self, x, c):
-        h1 = F.relu(self.fc1(torch.cat([x, c], dim=1)))
-        return self.fc21(h1), self.fc22(h1)
+    def encode(self, formulation, conductivity):
+        hidden = F.relu(self.fc1(torch.cat([formulation, conductivity], dim=1)))
+        return self.fc21(hidden), self.fc22(hidden)
 
-    def reparameterize(self, mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        return mu + std * torch.randn_like(std)
+    def reparameterize(self, mean, log_variance):
+        standard_deviation = torch.exp(0.5 * log_variance)
+        return mean + standard_deviation * torch.randn_like(standard_deviation)
 
-    def decode(self, z, c):
-        h3 = F.relu(self.fc3(torch.cat([z, c], dim=1)))
-        return self.fc4(h3)
+    def decode(self, latent, conductivity):
+        hidden = F.relu(self.fc3(torch.cat([latent, conductivity], dim=1)))
+        return self.fc4(hidden)
 
-    def forward(self, x, c):
-        mu, logvar = self.encode(x, c)
-        z = self.reparameterize(mu, logvar)
-        return self.decode(z, c), mu, logvar
+    def forward(self, formulation, conductivity):
+        mean, log_variance = self.encode(formulation, conductivity)
+        latent = self.reparameterize(mean, log_variance)
+        return self.decode(latent, conductivity), mean, log_variance
